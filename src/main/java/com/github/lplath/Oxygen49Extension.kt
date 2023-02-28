@@ -2,6 +2,7 @@ package com.github.lplath
 
 import com.bitwig.extension.controller.ControllerExtension
 import com.bitwig.extension.controller.api.ControllerHost
+import com.bitwig.extension.controller.api.Transport
 import com.bitwig.extension.controller.api.CursorTrack
 import com.bitwig.extension.controller.api.CursorDevice
 import com.bitwig.extension.controller.api.CursorRemoteControlsPage
@@ -12,6 +13,7 @@ import com.github.lplath.Midi
 class Oxygen49Extension(definition: Oxygen49ExtensionDefinition, host: ControllerHost) :
     ControllerExtension(definition, host), ShortMidiDataReceivedCallback  {
 
+    private lateinit var transport: Transport
     private lateinit var cursorTrack: CursorTrack
     private lateinit var cursorDevice: CursorDevice
     private lateinit var cursorRemoteControlsPage: CursorRemoteControlsPage
@@ -22,6 +24,7 @@ class Oxygen49Extension(definition: Oxygen49ExtensionDefinition, host: Controlle
         val midiInPort = host.getMidiInPort(0)
         midiInPort.setMidiCallback(this)
 
+        transport = host.createTransport()
         cursorTrack = host.createCursorTrack(0, 0)
         cursorDevice = cursorTrack.createCursorDevice()
         cursorRemoteControlsPage = cursorDevice.createCursorRemoteControlsPage(8)
@@ -37,8 +40,16 @@ class Oxygen49Extension(definition: Oxygen49ExtensionDefinition, host: Controlle
 
     override fun midiReceived(status: Int, data1: Int, data2: Int) {
         if (Midi.isCC(status)) {
-            if (data1 in Mapping.KNOBS_REMOTE) {
-                cursorRemoteControlsPage.getParameter(Mapping.KNOBS_REMOTE.indexOf(data1)).value().set(data2, 128)
+            when (data1) {
+                in Mapping.KNOBS_REMOTE -> cursorRemoteControlsPage.getParameter(Mapping.KNOBS_REMOTE.indexOf(data1)).value().set(data2, 128)
+                Mapping.PREV_TRACK -> if (data2 != 0) cursorTrack.selectPrevious()
+                Mapping.NEXT_TRACK -> if (data2 != 0) cursorTrack.selectNext()
+                Mapping.LOOP -> if (data2 != 0) transport.isArrangerLoopEnabled().toggle()
+                Mapping.REWIND -> if (data2 != 0) transport.rewind()
+                Mapping.FORWARD -> if (data2 != 0) transport.fastForward()
+                Mapping.STOP -> if (data2 != 0) transport.stop()
+                Mapping.PLAY -> if (data2 != 0) transport.play()
+                Mapping.RECORD -> if (data2 != 0) transport.record()
             }
         }
     }
