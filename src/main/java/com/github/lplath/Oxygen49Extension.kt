@@ -3,6 +3,7 @@ package com.github.lplath
 import com.bitwig.extension.controller.ControllerExtension
 import com.bitwig.extension.controller.api.ControllerHost
 import com.bitwig.extension.controller.api.Transport
+import com.bitwig.extension.controller.api.TrackBank
 import com.bitwig.extension.controller.api.CursorTrack
 import com.bitwig.extension.controller.api.CursorDevice
 import com.bitwig.extension.controller.api.CursorRemoteControlsPage
@@ -14,6 +15,7 @@ class Oxygen49Extension(definition: Oxygen49ExtensionDefinition, host: Controlle
     ControllerExtension(definition, host), ShortMidiDataReceivedCallback  {
 
     private lateinit var transport: Transport
+    private lateinit var trackBank: TrackBank
     private lateinit var cursorTrack: CursorTrack
     private lateinit var cursorDevice: CursorDevice
     private lateinit var cursorRemoteControlsPage: CursorRemoteControlsPage
@@ -25,7 +27,9 @@ class Oxygen49Extension(definition: Oxygen49ExtensionDefinition, host: Controlle
         midiInPort.setMidiCallback(this)
 
         transport = host.createTransport()
+        trackBank = host.createTrackBank(8, 0, 0)
         cursorTrack = host.createCursorTrack(0, 0)
+        trackBank.followCursorTrack(cursorTrack)
         cursorDevice = cursorTrack.createCursorDevice()
         cursorRemoteControlsPage = cursorDevice.createCursorRemoteControlsPage(8)
 
@@ -50,11 +54,16 @@ class Oxygen49Extension(definition: Oxygen49ExtensionDefinition, host: Controlle
                 Mapping.STOP -> if (data2 != 0) transport.stop()
                 Mapping.PLAY -> if (data2 != 0) transport.play()
                 Mapping.RECORD -> if (data2 != 0) transport.record()
+                // TODO: Why does the keyboard only sometimes send the correct midi notes?
+                //in Mapping.BUTTONS -> trackBank.getItemAt(Mapping.BUTTONS.indexOf(data1)).select()
+                in Mapping.FADERS -> trackBank.getItemAt(Mapping.FADERS.indexOf(data1)).volume().value().set(data2, 128)
             }
         }
     }
 
-    override fun exit() {}
+    override fun exit() {
+        host.println("[INFO] Exiting Oxygen49")
+    }
 
     override fun flush() {}
 
