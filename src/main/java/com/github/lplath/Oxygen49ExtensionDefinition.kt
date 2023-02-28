@@ -15,7 +15,7 @@ class Oxygen49ExtensionDefinition : ControllerExtensionDefinition() {
 	override fun getHardwareModel() = "Oxygen 49"
 	override fun getRequiredAPIVersion() = 10
 	override fun getNumMidiInPorts() = 1
-	override fun getNumMidiOutPorts() = 0
+	override fun getNumMidiOutPorts() = 1
 	override fun listAutoDetectionMidiPortNames(list: AutoDetectionMidiPortNamesList, platformType: PlatformType) {}
 	override fun createInstance(host: ControllerHost): Oxygen49Extension = Oxygen49Extension(this, host)
 }

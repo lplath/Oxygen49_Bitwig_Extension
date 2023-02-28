@@ -10,6 +10,7 @@ import com.bitwig.extension.controller.api.CursorRemoteControlsPage
 import com.bitwig.extension.callback.ShortMidiDataReceivedCallback
 import com.github.lplath.Mapping
 import com.github.lplath.Midi
+import com.github.lplath.Memory
 
 class Oxygen49Extension(definition: Oxygen49ExtensionDefinition, host: ControllerHost) :
     ControllerExtension(definition, host), ShortMidiDataReceivedCallback  {
@@ -25,6 +26,11 @@ class Oxygen49Extension(definition: Oxygen49ExtensionDefinition, host: Controlle
 
         val midiInPort = host.getMidiInPort(0)
         midiInPort.setMidiCallback(this)
+
+        val midiOutPort = host.getMidiOutPort(0)
+        //midiOutPort.sendSysex(Memory)
+
+        val keys = midiInPort.createNoteInput("Keyboard")
 
         transport = host.createTransport()
         trackBank = host.createTrackBank(8, 0, 0)
@@ -45,6 +51,8 @@ class Oxygen49Extension(definition: Oxygen49ExtensionDefinition, host: Controlle
     override fun midiReceived(status: Int, data1: Int, data2: Int) {
         if (Midi.isCC(status)) {
             when (data1) {
+                in Mapping.BUTTONS -> if (data2 != 0) trackBank.getItemAt(Mapping.BUTTONS.indexOf(data1)).select()
+                in Mapping.FADERS -> trackBank.getItemAt(Mapping.FADERS.indexOf(data1)).volume().value().set(data2, 128)
                 in Mapping.KNOBS_REMOTE -> cursorRemoteControlsPage.getParameter(Mapping.KNOBS_REMOTE.indexOf(data1)).value().set(data2, 128)
                 Mapping.PREV_TRACK -> if (data2 != 0) cursorTrack.selectPrevious()
                 Mapping.NEXT_TRACK -> if (data2 != 0) cursorTrack.selectNext()
@@ -54,9 +62,7 @@ class Oxygen49Extension(definition: Oxygen49ExtensionDefinition, host: Controlle
                 Mapping.STOP -> if (data2 != 0) transport.stop()
                 Mapping.PLAY -> if (data2 != 0) transport.play()
                 Mapping.RECORD -> if (data2 != 0) transport.record()
-                // TODO: Why does the keyboard only sometimes send the correct midi notes?
-                //in Mapping.BUTTONS -> trackBank.getItemAt(Mapping.BUTTONS.indexOf(data1)).select()
-                in Mapping.FADERS -> trackBank.getItemAt(Mapping.FADERS.indexOf(data1)).volume().value().set(data2, 128)
+                else -> host.println("[WARN] Unknown CC $data1 $data2")
             }
         }
     }
