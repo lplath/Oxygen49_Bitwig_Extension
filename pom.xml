@@ -6,7 +6,7 @@
     <artifactId>oxygen49</artifactId>
     <packaging>jar</packaging>
     <name>M-Audio Oxygen 49</name>
-    <version>0.1</version>
+    <version>0.2</version>
 
     <properties>
         <kotlin.version>1.8.10</kotlin.version>
