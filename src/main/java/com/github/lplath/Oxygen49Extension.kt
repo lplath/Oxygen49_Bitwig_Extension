@@ -16,6 +16,12 @@ import com.github.lplath.Mapping
 import com.github.lplath.Midi
 import com.github.lplath.Memory
 
+enum class SecondaryButtonMode {
+    Mute,
+    Solo,
+    RecArm
+}
+
 class Oxygen49Extension(definition: Oxygen49ExtensionDefinition, host: ControllerHost) :
     ControllerExtension(definition, host), ShortMidiDataReceivedCallback {
 
@@ -30,6 +36,7 @@ class Oxygen49Extension(definition: Oxygen49ExtensionDefinition, host: Controlle
     private lateinit var cursorRemoteControlsPage: CursorRemoteControlsPage
 
     private var isShiftPressed = false
+    private var secondaryButtonMode = SecondaryButtonMode.Mute
     
     override fun init() {
         host.println("[INFO] Running Oxygen49")
@@ -56,8 +63,16 @@ class Oxygen49Extension(definition: Oxygen49ExtensionDefinition, host: Controlle
 			}
 		}
 
-        host.preferences.getSignalSetting("Memory", "Device (Slot 10)", "Reset").addSignalObserver() {
+        host.preferences.getSignalSetting("Memory", "Device", "Reset").addSignalObserver() {
             this.writeDeviceMemory()
+        }
+
+        host.preferences.getEnumSetting("Secondary assignment", "Buttons", arrayOf("Mute", "Solo", "Rec. Arm"), "Mute").addValueObserver() { value ->
+            when (value) {
+                "Mute" -> secondaryButtonMode = SecondaryButtonMode.Mute
+                "Solo" -> secondaryButtonMode = SecondaryButtonMode.Solo
+                "Rec. Arm" -> secondaryButtonMode = SecondaryButtonMode.RecArm
+            }
         }
     }
 
@@ -102,7 +117,13 @@ class Oxygen49Extension(definition: Oxygen49ExtensionDefinition, host: Controlle
                 Mapping.MASTER_FADER -> masterTrack.volume().value().set(data2, 128)
 
                 in Mapping.BUTTONS ->  if (data2 == 0) {
-                    if (isShiftPressed) trackBank.getItemAt(Mapping.BUTTONS.indexOf(data1)).mute().toggle()
+                    if (isShiftPressed) {
+                        when (secondaryButtonMode) {
+                            SecondaryButtonMode.Mute -> trackBank.getItemAt(Mapping.BUTTONS.indexOf(data1)).mute().toggle()
+                            SecondaryButtonMode.Solo -> trackBank.getItemAt(Mapping.BUTTONS.indexOf(data1)).solo().toggle()
+                            SecondaryButtonMode.RecArm -> trackBank.getItemAt(Mapping.BUTTONS.indexOf(data1)).arm().toggle()
+                        }
+                    }
                     else trackBank.getItemAt(Mapping.BUTTONS.indexOf(data1)).selectInMixer()          
                 }
 
